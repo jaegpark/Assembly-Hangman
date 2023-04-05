@@ -32,9 +32,10 @@
 #define RESOLUTION_X 320
 #define RESOLUTION_Y 240
 
-/* Constants for animation */
-//#define BOX_LEN 2
-//#define NUM_BOXES 8
+/* Constants for snowman drawing */
+#define HEAD_RADIUS 25
+#define BODY_RADIUS 35
+#define FEET_RADIUS 45
 
 #define FALSE 0
 #define TRUE 1
@@ -130,6 +131,70 @@ void draw_line(int x0, int y0, int x1, int y1, short int color)
     }
 }
 
+void draw_sphere(int x, int y, int radius, short int color)
+{
+    int x0 = x - radius;
+    int x1 = x + radius;
+    int y0 = y - radius;
+    int y1 = y + radius;
+    int i, j;
+    for (i = x0; i <= x1; i++)
+    {
+        for (j = y0; j <= y1; j++)
+        {
+            if ((i - x) * (i - x) + (j - y) * (j - y) <= radius * radius)
+            {
+                plot_pixel(i, j, color);
+            }
+        }
+    }
+}
+
+void draw_current_snowman(int health) {
+    // Draw snowman based on health
+    if (health == 6) {
+        // Draw full snowman
+        clear_screen();
+        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5, HEAD_RADIUS, WHITE);
+        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5, BODY_RADIUS, WHITE);
+        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
+    }
+    else if (health == 5) {
+        clear_screen();
+        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5, HEAD_RADIUS, WHITE);
+        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5, BODY_RADIUS, WHITE);
+        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
+    }
+    else if (health == 4) {
+        clear_screen();
+        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5, HEAD_RADIUS, WHITE);
+        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5, BODY_RADIUS, WHITE);
+        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
+    }
+    else if (health == 3) {
+        clear_screen();
+        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5, HEAD_RADIUS, WHITE);
+        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5, BODY_RADIUS, WHITE);
+        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
+    }
+    else if (health == 2) {
+        // Draw snowman head and feet
+        clear_screen();
+        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5, HEAD_RADIUS, WHITE);
+        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
+    }
+    else if (health == 1) {
+        // Draw snowman head only
+        clear_screen();
+        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5, HEAD_RADIUS, WHITE);
+    }
+    else {
+        // Draw red X
+        clear_screen();
+        draw_line(RESOLUTION_X/2 - HEAD_RADIUS, 0+HEAD_RADIUS + 5 - HEAD_RADIUS, RESOLUTION_X/2 + HEAD_RADIUS, 0+HEAD_RADIUS + 5 + HEAD_RADIUS, RED);
+        draw_line(RESOLUTION_X/2 - HEAD_RADIUS, 0+HEAD_RADIUS + 5 + HEAD_RADIUS, RESOLUTION_X/2 + HEAD_RADIUS, 0+HEAD_RADIUS + 5 - HEAD_RADIUS, RED);
+    }
+}
 
 int main(void)
 {
@@ -150,10 +215,33 @@ int main(void)
     pixel_buffer_start = *(pixel_ctrl_ptr + 1); // we draw on the back buffer
     clear_screen(); // pixel_buffer_start points to the pixel buffer
 
-    
+    // Snowman health states (list of points to draw for each health value):
+    //6 health --> filled circle for head, filled circle for body, filled circle for feet
+    //int health_6[];
+
+    int SnowmanHealth = 6;
+    volatile int * PS2_ADDRESS = 0xFF200100;
+    int PS2_data, RVALID;
+    unsigned char val;
+
     while (1)
     {
-    
+        // Erase old snowman
+        draw_current_snowman(SnowmanHealth);
+
+        // Read from PS2
+        PS2_data = *(PS2_ADDRESS);
+        RVALID = (PS2_data & 0x8000);
+        if (RVALID != 0)
+		{
+			/* always save the last three bytes received */
+			val = PS2_data & 0xFF;
+		}
+
+        if (val >= 1) {
+            SnowmanHealth--;
+        }
+
         wait_for_vsync();
         pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
 
