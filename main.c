@@ -317,10 +317,14 @@ int main(void)
 
     while (1)
     {
+        int key_value = *(KEY_ADDRESS);
+        if (key_value == 1) {
+            game_state = 0;
+        }
         if (game_state == 0) {
             //Draw starting screen, wait for button press to determine difficulty
-            difficulty = *(KEY_ADDRESS); // Switch to edgecaptures if needed
-            if (difficulty != 0) {
+            if (key_value > 1) {
+                difficulty = key_value; // Switch to edgecaptures if needed
                 game_state = 1;
                 //Generate random word based on difficulty
                 word = "hello";
@@ -345,6 +349,7 @@ int main(void)
                     for (int i = 0; i < 5; i++) {
                         if (key_val == word[i]) {
                             key_in_word = 1;
+                            //reveal_letter(i);
                         }
                     }
 
@@ -358,7 +363,6 @@ int main(void)
                 //if no key is pressed set key_val to 0
                 key_val = 0;
             }
-            *(LED_ADDRESS) = key_val;
             
 
             wait_for_vsync();
@@ -368,6 +372,7 @@ int main(void)
         else if (game_state == 2) {
             //Draw game over screen, prompt restart option
         }
+        *(LED_ADDRESS) = game_state; 
         
         
         
