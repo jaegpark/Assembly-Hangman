@@ -424,7 +424,7 @@ char* generate_word(int difficulty, char* word_array[]) {
         // Medium
         return word_array[i+5];
     }
-    else{
+    else {
         // Hard
         return word_array[i+10];
     }
@@ -468,6 +468,9 @@ int main(void)
 
     //temporary word
     char* word;
+    for (int i =0 ; i < 5; i++){
+        letter_states[i] = 0;
+    }
 
     while (1)
     {
@@ -492,8 +495,8 @@ int main(void)
             }
             
             draw_word(26, "Welcome to Melting Snowman", 10, 180, WHITE);
-            draw_word(31, "Select a difficulty by pressing", 10, 200, WHITE);
-            draw_word(18, "a key one to three", 10, 220, WHITE);
+            draw_word(29, "Select difficulty by pressing", 10, 200, WHITE);
+            draw_word(16, "key one to three", 10, 220, WHITE);
             wait_for_vsync();
             pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
 
@@ -570,9 +573,15 @@ int main(void)
             for (int i = 0 ; i < 5; i++){
                 letter_states[i] = !letter_states[i];
             }
+            
+
             draw_current_word(word, RED);
+            for (int i = 0 ; i < 5; i++){
+                letter_states[i] = !letter_states[i];
+            }
+            
             // draw "YOU WON"
-            draw_word(8, "You Lost", 10, 200, RED);
+            draw_word(8, "You Lost", 10, 190, RED);
             draw_word(21, "Press KEYO to Restart", 10, 210, RED);
 
             PS2_data = *(PS2_ADDRESS);
