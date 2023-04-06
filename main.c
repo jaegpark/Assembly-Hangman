@@ -196,6 +196,88 @@ void draw_current_snowman(int health) {
     }
 }
 
+int convert_to_ascii(int num) {
+    // Convert number to ASCII
+    if (num == 0x1C) {
+        return 'a';
+    }
+    else if (num == 0x32) {
+        return 'b';
+    }
+    else if (num == 0x21) {
+        return 'c';
+    }
+    else if (num == 0x23) {
+        return 'd';
+    }
+    else if (num == 0x24) {
+        return 'e';
+    }
+    else if (num == 0x2B) {
+        return 'f';
+    }
+    else if (num == 0x34) {
+        return 'g';
+    }
+    else if (num == 0x33) {
+        return 'h';
+    }
+    else if (num == 0x43) {
+        return 'i';
+    }
+    else if (num == 0x3B) {
+        return 'j';
+    }
+    else if (num == 0x42) {
+        return 'k';
+    }
+    else if (num == 0x4B) {
+        return 'l';
+    }
+    else if (num == 0x3A) {
+        return 'm';
+    }
+    else if (num == 0x31) {
+        return 'n';
+    }
+    else if (num == 0x44) {
+        return 'o';
+    }
+    else if (num == 0x4D) {
+        return 'p';
+    }
+    else if (num == 0x15) {
+        return 'q';
+    }
+    else if (num == 0x2D) {
+        return 'r';
+    }
+    else if (num == 0x1B) {
+        return 's';
+    }
+    else if (num == 0x2C) {
+        return 't';
+    }
+    else if (num == 0x3C) {
+        return 'u';
+    }
+    else if (num == 0x2A) {
+        return 'v';
+    }
+    else if (num == 0x1D) {
+        return 'w';
+    }
+    else if (num == 0x22) {
+        return 'x';
+    }
+    else if (num == 0x35) {
+        return 'y';
+    }
+    else if (num == 0x1A) {
+        return 'z';
+    }    
+}
+
 int main(void)
 {
     volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
@@ -220,34 +302,74 @@ int main(void)
     //int health_6[];
 
     int SnowmanHealth = 6;
-    volatile int * PS2_ADDRESS = 0xFF200100;
+    volatile int* PS2_ADDRESS = 0xFF200100;
+    volatile int* LED_ADDRESS = LEDR_BASE;
+    volatile int* KEY_ADDRESS = KEY_BASE;
     int PS2_data, RVALID;
-    unsigned char val;
+    unsigned char key_val;
+
+    //Game State Integer
+    int game_state = 0;
+    int difficulty = 0;
+
+    //temporary word
+    char* word;
 
     while (1)
     {
-        // Erase old snowman
-        draw_current_snowman(SnowmanHealth);
-
-        // Read from PS2
-        PS2_data = *(PS2_ADDRESS);
-        RVALID = (PS2_data & 0x8000);
-        if (RVALID != 0)
-		{
-			/* always save the last three bytes received */
-			val = PS2_data & 0xFF;
-		}
-        else {
-            val = 0;
+        if (game_state == 0) {
+            //Draw starting screen, wait for button press to determine difficulty
+            difficulty = *(KEY_ADDRESS); // Switch to edgecaptures if needed
+            if (difficulty != 0) {
+                game_state = 1;
+                //Generate random word based on difficulty
+                word = "hello";
+            }
         }
+        else if (game_state == 1) {
+            //Draw game screen, wait for key input to determine if snowman is hit or character is guessed
+            draw_current_snowman(SnowmanHealth);
 
-        if (val >= 1) {
-            SnowmanHealth--;
+            // Read from PS2
+            PS2_data = *(PS2_ADDRESS);
+            RVALID = (PS2_data & 0x8000);
+            if (RVALID != 0)
+            {
+                key_val = PS2_data & 0xFF;
+                if (key_val != 0xF0) {
+                    key_val = convert_to_ascii(key_val);
+
+                    //check if key_val is inside the word
+                    //if not, decrement health
+                    int key_in_word = 0;
+                    for (int i = 0; i < 5; i++) {
+                        if (key_val == word[i]) {
+                            key_in_word = 1;
+                        }
+                    }
+
+                    if (!key_in_word) {
+                        SnowmanHealth--;
+                    }
+                }
+
+            }
+            else {
+                //if no key is pressed set key_val to 0
+                key_val = 0;
+            }
+            *(LED_ADDRESS) = key_val;
+            
+
+            wait_for_vsync();
+            pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+
         }
-
-        wait_for_vsync();
-        pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
-
+        else if (game_state == 2) {
+            //Draw game over screen, prompt restart option
+        }
+        
+        
         
     }
 }
