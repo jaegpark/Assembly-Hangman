@@ -36,6 +36,8 @@
 #define HEAD_RADIUS 25
 #define BODY_RADIUS 35
 #define FEET_RADIUS 45
+#define ARM_LENGTH_X 20
+#define ARM_LENGTH_Y 10
 
 /* WORDS */
 #define EASY1 "apple"
@@ -216,34 +218,7 @@ void draw_letter(char letter, int x, int y, short int color){
         0x33, 0x33, 0x33, 0x1E, 0x0C, 0x0C, 0x0C, 0x00,
         // Z
         0x3F, 0x06, 0x0C, 0x18, 0x30, 0x60, 0x7F, 0x00 
-        // Define 16x16 binary matrices for each uppercase letter here, with 1s indicating where to draw the letter pixels.
-        // Each matrix should have dimensions [16] and represent a single uppercase letter.
-       /*  0x1C1C, 0x3636, 0x6363, 0x6363, 0x7F7F, 0x6363, 0x6363, 0x0000, // A
-        0x3E3E, 0x3333, 0x3333, 0x3E3E, 0x3333, 0x3333, 0x3E3E, 0x0000, // B
-        0x1E1E, 0x3333, 0x3030, 0x3030, 0x3030, 0x3333, 0x1E1E, 0x0000, // C
-        0x3E3E, 0x3333, 0x3333, 0x3333, 0x3333, 0x3333, 0x3E3E, 0x0000, // D
-        0x3F3F, 0x3030, 0x3030, 0x3C3C, 0x3030, 0x3030, 0x3F3F, 0x0000, // E
-        0x3F3F, 0x3030, 0x3030, 0x3E3E, 0x3030, 0x3030, 0x3030, 0x0000, // F
-        0x1F1F, 0x3030, 0x3030, 0x3333, 0x3333, 0x3333, 0x1F1F, 0x0000, // G
-        0x3333, 0x3333, 0x3333, 0x3F3F, 0x3333, 0x3333, 0x3333, 0x0000, // H
-        0x1C1C, 0x0C0C, 0x0C0C, 0x0C0C, 0x0C0C, 0x0C0C, 0x1C1C, 0x0000, // I
-        0x0E0E, 0x0606, 0x0606, 0x0606, 0x0606, 0x3636, 0x1C1C, 0x0000, // J
-        0x3333, 0x3636, 0x3C3C, 0x3838, 0x3C3C, 0x3636, 0x3333, 0x0000, // K
-        0x3030, 0x3030, 0x3030, 0x3030, 0x3030, 0x3030, 0x3F3F, 0x0000, // L
-        0x6363, 0x7777, 0x7F7F, 0x7F7F, 0x6B6B, 0x6363, 0x6363, 0x0000, // M
-        0x3333, 0x3333, 0x3B3B, 0x3F3F, 0x3737, 0x3333, 0x3333, 0x0000, // N
-        0x1E1E, 0x3333, 0x3333, 0x3333, 0x3333, 0x3333, 0x1E1E, 0x0000, // O
-        0x3E3E, 0x3333, 0x3333, 0x3E3E, 0x3030, 0x3030, 0x3030, 0x0000, // P
-        0x1E1E, 0x3333, 0x3333, 0x3333, 0x3737, 0x3636, 0x1D1D, 0x0000, // Q
-        0x3E3E, 0x3333, 0x3333, 0x3E3E, 0x3C3C, 0x3636, 0x3333, 0x0000, // R
-        0x1F1F, 0x3030, 0x3030, 0x1E1E, 0x0303, 0x0303, 0x3E3E, 0x0000, // S
-        0x7F7F, 0x0C0C, 0x0C0C, 0x0C0C, 0x0C0C, 0x0C0C, 0x0C0C, 0x0000, // T
-        0x3333, 0x3333, 0x3333, 0x3333, 0x3333, 0x3333, 0x1E1E, 0x0000, // U
-        0x3333, 0x3333, 0x3333, 0x3333, 0x3333, 0x1E1E, 0x0C0C, 0x0000, // V
-        0x6363, 0x6363, 0x6363, 0x6B6B, 0x7F7F, 0x7777, 0x6363, 0x0000, // W
-        0x6363, 0x3636, 0x1C1C, 0x0808, 0x1C1C, 0x3636, 0x6363, 0x0000, // X
-        0x3333, 0x3333, 0x3333, 0x1E1E, 0x0C0C, 0x0C0C, 0x0C0C, 0x0000, // Y
-        0x3F3F, 0x0606, 0x0C0C, 0x1818, 0x3030, 0x6060, 0x7F7F, 0x0000  // Z */
+        
     };
     
     if (letter >= 'A' && letter <= 'Z') {
@@ -255,7 +230,7 @@ void draw_letter(char letter, int x, int y, short int color){
 void draw_letter_helper(int x, int y, short int color, const uint32_t letter_matrix[8]) {
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
-            if (letter_matrix[i] & (1 << j)) {
+            if (letter_matrix[i] & (1 << (7-j))) {
                 plot_pixel(x + j, y + 2* i, color);
                 
                 plot_pixel(x + j, y + 2* i + 1, color);
@@ -280,41 +255,54 @@ void draw_letter_helper(int x, int y, short int color, const uint32_t letter_mat
 
 void draw_current_snowman(int health) {
     // Draw snowman based on health
+    int mid_x = RESOLUTION_X/2;
     if (health == 6) {
         // Draw full snowman
         clear_screen();
-        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5, HEAD_RADIUS, WHITE);
-        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5, BODY_RADIUS, WHITE);
-        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
+
+        draw_sphere(mid_x , 0+HEAD_RADIUS + 5, HEAD_RADIUS, WHITE);     // head 
+        draw_sphere(mid_x , 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5, BODY_RADIUS, WHITE);       // middle
+        draw_sphere(mid_x , 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);     // bottom
+        draw_line(mid_x + BODY_RADIUS, HEAD_RADIUS + 5 + BODY_RADIUS + 5, mid_x + BODY_RADIUS + ARM_LENGTH_X, HEAD_RADIUS + 5 + BODY_RADIUS + 5 + ARM_LENGTH_Y, GREEN); // right arm
+        draw_line(mid_x - BODY_RADIUS, HEAD_RADIUS + 5 + BODY_RADIUS + 5, mid_x - BODY_RADIUS - ARM_LENGTH_X, HEAD_RADIUS + 5 + BODY_RADIUS + 5 + ARM_LENGTH_Y, GREEN); // left arm
+
+        draw_line(mid_x, HEAD_RADIUS + 5, mid_x - ARM_LENGTH_X, HEAD_RADIUS + 5 - ARM_LENGTH_Y, ORANGE);    // NOSE
+        draw_line(mid_x - ARM_LENGTH_X, HEAD_RADIUS + 5 - ARM_LENGTH_Y, mid_x, HEAD_RADIUS + 5 - ARM_LENGTH_Y, ORANGE);
+        
+
+
     }
-    else if (health == 5) {
+    else if (health == 5) { 
         clear_screen();
-        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5, HEAD_RADIUS, WHITE);
-        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5, BODY_RADIUS, WHITE);
-        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
+        draw_sphere(mid_x , 0+HEAD_RADIUS + 5, HEAD_RADIUS, WHITE);
+        draw_sphere(mid_x , 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5, BODY_RADIUS, WHITE);
+        draw_sphere(mid_x , 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
+        
+        draw_line(mid_x, HEAD_RADIUS + 5, mid_x - ARM_LENGTH_X, HEAD_RADIUS + 5 - ARM_LENGTH_Y, ORANGE);    // NOSE
+        draw_line(mid_x - ARM_LENGTH_X, HEAD_RADIUS + 5 - ARM_LENGTH_Y, mid_x, HEAD_RADIUS + 5 - ARM_LENGTH_Y, ORANGE);
+        
     }
     else if (health == 4) {
-        clear_screen();
-        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5, HEAD_RADIUS, WHITE);
-        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5, BODY_RADIUS, WHITE);
-        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
+        clear_screen();     // melting body
+        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 10, HEAD_RADIUS, WHITE);
+        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + BODY_RADIUS + 5, BODY_RADIUS, WHITE);
+        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
     }
     else if (health == 3) {
         clear_screen();
-        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5, HEAD_RADIUS, WHITE);
-        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5, BODY_RADIUS, WHITE);
-        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
+        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + BODY_RADIUS + 5, BODY_RADIUS, WHITE);
+        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
     }
     else if (health == 2) {
         // Draw snowman head and feet
         clear_screen();
-        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5, HEAD_RADIUS, WHITE);
+        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + BODY_RADIUS + 5, BODY_RADIUS, WHITE);
         draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
     }
     else if (health == 1) {
         // Draw snowman head only
         clear_screen();
-        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5, HEAD_RADIUS, WHITE);
+        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
     }
     else {
         // Draw red X
@@ -483,16 +471,16 @@ int main(void)
         else if (game_state == 1) {
             //Draw game screen, wait for key input to determine if snowman is hit or character is guessed
             draw_current_snowman(SnowmanHealth);
-            draw_letter('Q', 0, 0, WHITE);
-            draw_letter('R', 10, 0, WHITE);
-            draw_letter('S', 20, 0, WHITE);
-            draw_letter('T', 30, 0, WHITE);
-            draw_letter('U', 40, 0, WHITE);
-            draw_letter('V', 50, 0, WHITE);
-            draw_letter('W', 60, 0, WHITE);
-            draw_letter('X', 70, 0, WHITE);
-            draw_letter('Y', 80, 0, WHITE);
-            draw_letter('Z', 80, 0, WHITE);
+            draw_letter('U', 0, 0, WHITE);
+            draw_letter('V', 10, 0, WHITE);
+            draw_letter('W', 20, 0, WHITE);
+            draw_letter('X', 30, 0, WHITE);
+            draw_letter('Y', 40, 0, WHITE);
+            draw_letter('Z', 50, 0, WHITE);
+            draw_letter('Q', 60, 0, WHITE);
+            draw_letter('R', 70, 0, WHITE);
+            draw_letter('S', 80, 0, WHITE);
+            draw_letter('T', 90, 0, WHITE);
             
             // Read from PS2
             PS2_data = *(PS2_ADDRESS);
@@ -520,6 +508,12 @@ int main(void)
                             game_state = 2;
                         }
                     }
+                }
+
+                // delay so we stop reading in key input for a cycle
+                for (int i = 0; i < 2000000; i++){
+                    // do nothing
+                    PS2_data = *(PS2_ADDRESS);
                 }
 
             }
