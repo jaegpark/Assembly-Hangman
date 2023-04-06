@@ -355,6 +355,10 @@ int main(void)
 
                     if (!key_in_word) {
                         SnowmanHealth--;
+                        if (SnowmanHealth == 0) {
+                            draw_current_snowman(SnowmanHealth);
+                            game_state = 2;
+                        }
                     }
                 }
 
