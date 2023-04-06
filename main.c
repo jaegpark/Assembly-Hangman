@@ -482,8 +482,9 @@ int main(void)
                 letter_states[i] = 0;
             }
             //write back to the edgecapture register to reset it
-            *(KEY_ADDRESS+3) = key_value_edge;
+            *(KEY_ADDRESS+3) = 0xF;
         }
+        *(KEY_ADDRESS+3) = 0xF;
         if (game_state == 0) {
             //Draw starting screen, wait for button press to determine difficulty
             clear_screen();
@@ -562,7 +563,6 @@ int main(void)
 
             wait_for_vsync();
             pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
-            *(KEY_ADDRESS+3) = key_value_edge;
         }
         else if (game_state == 2) {
             //Draw game over screen, prompt restart option
