@@ -474,20 +474,22 @@ int main(void)
 
     while (1)
     {
-        int key_value = *(KEY_ADDRESS);
-        if (key_value == 1) {
+        int key_value_edge = (*(KEY_ADDRESS+3))&0xF;
+        if (key_value_edge == 1) {
             game_state = 0;
             SnowmanHealth = 6;
             for (int i = 0; i < 5; i++){
                 letter_states[i] = 0;
             }
+            //write back to the edgecapture register to reset it
+            *(KEY_ADDRESS+3) = 1;
         }
         if (game_state == 0) {
             //Draw starting screen, wait for button press to determine difficulty
             clear_screen();
             PS2_data = *(PS2_ADDRESS);
-            if (key_value > 1) {
-                difficulty = key_value; // Switch to edgecaptures if needed
+            if (key_value_edge > 1) {
+                difficulty = key_value_edge; // Switch to edgecaptures if needed
                 game_state = 1;
                 //Generate random word based on difficulty
                 //word = "hello";
