@@ -237,6 +237,9 @@ int main(void)
 			/* always save the last three bytes received */
 			val = PS2_data & 0xFF;
 		}
+        else {
+            val = 0;
+        }
 
         if (val >= 1) {
             SnowmanHealth--;
