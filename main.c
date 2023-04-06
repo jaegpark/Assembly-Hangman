@@ -64,6 +64,7 @@
 #include <stdint.h> 
 
 
+int* letter_states = {0, 0, 0, 0, 0};
 volatile int pixel_buffer_start; // global variable
 
 // code for subroutines (not shown)
@@ -217,7 +218,9 @@ void draw_letter(char letter, int x, int y, short int color){
         // Y
         0x33, 0x33, 0x33, 0x1E, 0x0C, 0x0C, 0x0C, 0x00,
         // Z
-        0x3F, 0x06, 0x0C, 0x18, 0x30, 0x60, 0x7F, 0x00 
+        0x3F, 0x06, 0x0C, 0x18, 0x30, 0x60, 0x7F, 0x00, 
+        // _
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0XFF
         
     };
     
@@ -253,6 +256,22 @@ void draw_letter_helper(int x, int y, short int color, const uint32_t letter_mat
     } */
 }
 
+
+void draw_word(int word_len, char *word, int x, int y, int color){
+    for (int i = 0; i < word_len; i++){
+        if (word[i] != ' ')
+            draw_letter(word[i], x + 10*i, y, color);
+    }
+}
+void draw_current_word(char * word, int color){
+    for (int i = 0 ; i < 5; i++){
+        if (letter_states[i] == 1){
+            draw_letter(word[i], i * 10, 0, color);
+        } else {
+            draw_letter('_', i*10, 0, color);
+        }
+    }
+}
 void draw_current_snowman(int health) {
     // Draw snowman based on health
     int mid_x = RESOLUTION_X/2;
@@ -456,31 +475,33 @@ int main(void)
         if (key_value == 1) {
             game_state = 0;
             SnowmanHealth = 6;
+            for (int i = 0; i < 5; i++){
+                letter_states[i] = 0;
+            }
         }
         if (game_state == 0) {
             //Draw starting screen, wait for button press to determine difficulty
+            clear_screen();
+            PS2_data = *(PS2_ADDRESS);
             if (key_value > 1) {
                 difficulty = key_value; // Switch to edgecaptures if needed
                 game_state = 1;
                 //Generate random word based on difficulty
                 //word = "hello";
                 word = generate_word(difficulty, wordArray);
-                
             }
+            
+            draw_word(26, "Welcome to Melting Snowman", 10, 180, WHITE);
+            draw_word(31, "Select a difficulty by pressing", 10, 200, WHITE);
+            draw_word(18, "a key one to three", 10, 220, WHITE);
+            wait_for_vsync();
+            pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+
         }
         else if (game_state == 1) {
             //Draw game screen, wait for key input to determine if snowman is hit or character is guessed
             draw_current_snowman(SnowmanHealth);
-            draw_letter('U', 0, 0, WHITE);
-            draw_letter('V', 10, 0, WHITE);
-            draw_letter('W', 20, 0, WHITE);
-            draw_letter('X', 30, 0, WHITE);
-            draw_letter('Y', 40, 0, WHITE);
-            draw_letter('Z', 50, 0, WHITE);
-            draw_letter('Q', 60, 0, WHITE);
-            draw_letter('R', 70, 0, WHITE);
-            draw_letter('S', 80, 0, WHITE);
-            draw_letter('T', 90, 0, WHITE);
+            draw_current_word(word, WHITE);
             
             // Read from PS2
             PS2_data = *(PS2_ADDRESS);
@@ -497,7 +518,7 @@ int main(void)
                     for (int i = 0; i < 5; i++) {
                         if (key_val == word[i]) {
                             key_in_word = 1;
-                            //reveal_letter(i);
+                            letter_states[i] = 1;
                         }
                     }
 
@@ -511,7 +532,7 @@ int main(void)
                 }
 
                 // delay so we stop reading in key input for a cycle
-                for (int i = 0; i < 2000000; i++){
+                for (int i = 0; i < 1000000; i++){
                     // do nothing
                     PS2_data = *(PS2_ADDRESS);
                 }
@@ -521,18 +542,56 @@ int main(void)
                 //if no key is pressed set key_val to 0
                 key_val = 0;
             }
-            
+            int win = 1;
+            // check for win condition
+            for (int i = 0; i < 5; i++){
+                if (letter_states[i] == 0){
+                    win = 0;
+                }
+            }
+
+            if (win){
+                game_state = 3;
+            } 
+
 
             wait_for_vsync();
             pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
-
         }
         else if (game_state == 2) {
             //Draw game over screen, prompt restart option
+            wait_for_vsync();
+            pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+            clear_screen();
+            draw_current_snowman(0);    // draw with 0 hp
+
+            // reset states so that the things appear
+            draw_current_word(word, WHITE);
+            for (int i = 0 ; i < 5; i++){
+                letter_states[i] = !letter_states[i];
+            }
+            draw_current_word(word, RED);
+            // draw "YOU WON"
+            draw_word(8, "You Lost", 10, 200, RED);
+            draw_word(21, "Press KEYO to Restart", 10, 210, RED);
+
+            PS2_data = *(PS2_ADDRESS);
+
+        } else if (game_state == 3){    // win
+            wait_for_vsync();
+            pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+            clear_screen();
+            draw_current_snowman(6);    // draw with max hp
+            draw_current_word(word, GREEN);
+            // draw "YOU WON"
+            draw_word(7, "You Won", 10, 200, GREEN);
+
+            PS2_data = *(PS2_ADDRESS);
+            
         }
         *(LED_ADDRESS) = game_state; 
         
-        
+
         
     }
 }
