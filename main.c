@@ -37,6 +37,23 @@
 #define BODY_RADIUS 35
 #define FEET_RADIUS 45
 
+/* WORDS */
+#define EASY1 "apple"
+#define EASY2 "beach"
+#define EASY3 "chair"
+#define EASY4 "dance"
+#define EASY5 "earth"
+#define MEDIUM1 "slate"
+#define MEDIUM2 "sugar"
+#define MEDIUM3 "tiger"
+#define MEDIUM4 "towel"
+#define MEDIUM5 "water"
+#define HARD1 "ducat"
+#define HARD2 "ouija"
+#define HARD3 "enoki"
+#define HARD4 "azure"
+#define HARD5 "soare"
+
 #define FALSE 0
 #define TRUE 1
 
@@ -389,6 +406,23 @@ int convert_to_ascii(int num) {
     }    
 }
 
+char* generate_word(int difficulty, char* word_array[]) {
+    // Generate random index between 0 and 4
+    int i = rand() % 5;
+    if (difficulty == 2) {
+        // Easy
+        return word_array[i];
+    }
+    else if (difficulty == 4) {
+        // Medium
+        return word_array[i+5];
+    }
+    else{
+        // Hard
+        return word_array[i+10];
+    }
+}
+
 int main(void)
 {
     volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
@@ -412,6 +446,8 @@ int main(void)
     //6 health --> filled circle for head, filled circle for body, filled circle for feet
     //int health_6[];
 
+    char* wordArray[] = {EASY1,EASY2,EASY3,EASY4,EASY5,MEDIUM1,MEDIUM2,MEDIUM3,MEDIUM4,MEDIUM5,HARD1,HARD2,HARD3,HARD4,HARD5};
+
     int SnowmanHealth = 6;
     volatile int* PS2_ADDRESS = 0xFF200100;
     volatile int* LED_ADDRESS = LEDR_BASE;
@@ -431,6 +467,7 @@ int main(void)
         int key_value = *(KEY_ADDRESS);
         if (key_value == 1) {
             game_state = 0;
+            SnowmanHealth = 6;
         }
         if (game_state == 0) {
             //Draw starting screen, wait for button press to determine difficulty
@@ -438,7 +475,8 @@ int main(void)
                 difficulty = key_value; // Switch to edgecaptures if needed
                 game_state = 1;
                 //Generate random word based on difficulty
-                word = "hello";
+                //word = "hello";
+                word = generate_word(difficulty, wordArray);
                 
             }
         }
