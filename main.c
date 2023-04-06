@@ -13,6 +13,7 @@
 #define TIMER_BASE            0xFF202000
 #define PIXEL_BUF_CTRL_BASE   0xFF203020
 #define CHAR_BUF_CTRL_BASE    0xFF203030
+#define AUDIO_BASE              0xFF203040
 
 /* VGA colors */
 #define WHITE 0xFFFF
@@ -77,6 +78,23 @@ void clear_screen(){
     for (int i = 0; i < RESOLUTION_X; i++){
         for (int j = 0; j < RESOLUTION_Y; j++){
             plot_pixel(i, j, 0x0000);
+        }
+    }
+}
+
+void play_sound(int frequency, int duration) {
+    volatile int *audio_ptr = (int *)AUDIO_BASE;
+    int sample_rate = 48000; // 48 kHz
+    int num_samples = duration * sample_rate / 1000;
+    int half_period = sample_rate / (2 * frequency);
+
+    for (int i = 0; i < num_samples; ++i) {
+        if (i % (2 * half_period) < half_period) {
+            *(audio_ptr) = 0x00FFFFFF; // max positive value
+            *(audio_ptr + 2) = 0x00FFFFFF;
+        } else {
+            *(audio_ptr) = 0xFF000000; // max negative value
+            *(audio_ptr + 2) = 0xFF000000;
         }
     }
 }
@@ -458,7 +476,7 @@ int main(void)
     int SnowmanHealth = 6;
     volatile int* PS2_ADDRESS = 0xFF200100;
     volatile int* LED_ADDRESS = LEDR_BASE;
-    volatile int* KEY_ADDRESS = KEY_BASE;
+    volatile int* KEY_ADDRESS = 0xFF20005C;
     int PS2_data, RVALID;
     unsigned char key_val;
 
@@ -474,7 +492,7 @@ int main(void)
 
     while (1)
     {
-        int key_value_edge = (*(KEY_ADDRESS+3))&0xF;
+        int key_value_edge = (*(KEY_ADDRESS))&0xF;
         if (key_value_edge == 1) {
             game_state = 0;
             SnowmanHealth = 6;
@@ -482,9 +500,9 @@ int main(void)
                 letter_states[i] = 0;
             }
             //write back to the edgecapture register to reset it
-            *(KEY_ADDRESS+3) = 0xF;
+            *(KEY_ADDRESS) = 0xF;
         }
-        *(KEY_ADDRESS+3) = 0xF;
+        *(KEY_ADDRESS) = 0xF;
         if (game_state == 0) {
             //Draw starting screen, wait for button press to determine difficulty
             clear_screen();
@@ -533,6 +551,7 @@ int main(void)
                         if (SnowmanHealth == 0) {
                             draw_current_snowman(SnowmanHealth);
                             game_state = 2;
+                            play_sound(440, 2000);
                         }
                     }
                 }
@@ -557,6 +576,7 @@ int main(void)
             }
 
             if (win){
+                play_sound(880, 2000); // 880 Hz, 500 ms
                 game_state = 3;
             } 
 
