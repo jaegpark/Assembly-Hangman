@@ -149,7 +149,7 @@ void draw_sphere(int x, int y, int radius, short int color)
     }
 }
 
-void draw_letter_helper(int x, int y, short int color, const uint32_t letter_matrix[16]);
+void draw_letter_helper(int x, int y, short int color, const uint32_t letter_matrix[8]);
 
 void draw_letter(char letter, int x, int y, short int color){
     /**
@@ -159,8 +159,8 @@ void draw_letter(char letter, int x, int y, short int color){
      * Each letter is 8x8 pixels.
      */
     letter = toupper(letter);
-    static const uint32_t letter_matrices[][16] = {
-        /* // Define 8x8 binary matrices for each uppercase letter here, with 1s indicating where to draw the letter pixels.
+    static const uint32_t letter_matrices[][8] = {
+        // Define 8x8 binary matrices for each uppercase letter here, with 1s indicating where to draw the letter pixels.
         // Each matrix should have dimensions [8] and represent a single uppercase letter.
         0x1C, 0x36, 0x63, 0x63, 0x7F, 0x63, 0x63, 0x00, // A
         0x3E, 0x33, 0x33, 0x3E, 0x33, 0x33, 0x3E, 0x00, // B
@@ -198,10 +198,10 @@ void draw_letter(char letter, int x, int y, short int color){
         // Y
         0x33, 0x33, 0x33, 0x1E, 0x0C, 0x0C, 0x0C, 0x00,
         // Z
-        0x3F, 0x06, 0x0C, 0x18, 0x30, 0x60, 0x7F, 0x00 */
+        0x3F, 0x06, 0x0C, 0x18, 0x30, 0x60, 0x7F, 0x00 
         // Define 16x16 binary matrices for each uppercase letter here, with 1s indicating where to draw the letter pixels.
         // Each matrix should have dimensions [16] and represent a single uppercase letter.
-        0x1C1C, 0x3636, 0x6363, 0x6363, 0x7F7F, 0x6363, 0x6363, 0x0000, // A
+       /*  0x1C1C, 0x3636, 0x6363, 0x6363, 0x7F7F, 0x6363, 0x6363, 0x0000, // A
         0x3E3E, 0x3333, 0x3333, 0x3E3E, 0x3333, 0x3333, 0x3E3E, 0x0000, // B
         0x1E1E, 0x3333, 0x3030, 0x3030, 0x3030, 0x3333, 0x1E1E, 0x0000, // C
         0x3E3E, 0x3333, 0x3333, 0x3333, 0x3333, 0x3333, 0x3E3E, 0x0000, // D
@@ -226,7 +226,7 @@ void draw_letter(char letter, int x, int y, short int color){
         0x6363, 0x6363, 0x6363, 0x6B6B, 0x7F7F, 0x7777, 0x6363, 0x0000, // W
         0x6363, 0x3636, 0x1C1C, 0x0808, 0x1C1C, 0x3636, 0x6363, 0x0000, // X
         0x3333, 0x3333, 0x3333, 0x1E1E, 0x0C0C, 0x0C0C, 0x0C0C, 0x0000, // Y
-        0x3F3F, 0x0606, 0x0C0C, 0x1818, 0x3030, 0x6060, 0x7F7F, 0x0000  // Z
+        0x3F3F, 0x0606, 0x0C0C, 0x1818, 0x3030, 0x6060, 0x7F7F, 0x0000  // Z */
     };
     
     if (letter >= 'A' && letter <= 'Z') {
@@ -236,20 +236,29 @@ void draw_letter(char letter, int x, int y, short int color){
 }
 
 void draw_letter_helper(int x, int y, short int color, const uint32_t letter_matrix[8]) {
-    for (int i = 0; i < 8; ++i) {
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            if (letter_matrix[i] & (1 << j)) {
+                plot_pixel(x + j, y + 2* i, color);
+                
+                plot_pixel(x + j, y + 2* i + 1, color);
+            }
+        }
+    }
+    /* for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) {
             if (letter_matrix[i] & (1 << (15 - j))) {
                 plot_pixel(x + j, y + (2 * i), color);
                 plot_pixel(x + j, y + (2 * i) + 1, color);
             }
         }
-        /* for (int j = 0; j < 16; ++j) {
+         for (int j = 0; j < 16; ++j) {
             if (letter_matrix[i] & (1 << (31 - j))) {
                 plot_pixel(x + j, y + (2 * i) + 16, color);
                 plot_pixel(x + j, y + (2 * i) + 17, color);
             }
-        } */
-    }
+        } 
+    } */
 }
 
 void draw_current_snowman(int health) {
@@ -430,13 +439,23 @@ int main(void)
                 game_state = 1;
                 //Generate random word based on difficulty
                 word = "hello";
+                
             }
         }
         else if (game_state == 1) {
             //Draw game screen, wait for key input to determine if snowman is hit or character is guessed
             draw_current_snowman(SnowmanHealth);
-        draw_letter('C', 0, 0, WHITE);
-
+            draw_letter('Q', 0, 0, WHITE);
+            draw_letter('R', 10, 0, WHITE);
+            draw_letter('S', 20, 0, WHITE);
+            draw_letter('T', 30, 0, WHITE);
+            draw_letter('U', 40, 0, WHITE);
+            draw_letter('V', 50, 0, WHITE);
+            draw_letter('W', 60, 0, WHITE);
+            draw_letter('X', 70, 0, WHITE);
+            draw_letter('Y', 80, 0, WHITE);
+            draw_letter('Z', 80, 0, WHITE);
+            
             // Read from PS2
             PS2_data = *(PS2_ADDRESS);
             RVALID = (PS2_data & 0x8000);
