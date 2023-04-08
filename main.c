@@ -13,7 +13,7 @@
 #define TIMER_BASE            0xFF202000
 #define PIXEL_BUF_CTRL_BASE   0xFF203020
 #define CHAR_BUF_CTRL_BASE    0xFF203030
-#define AUDIO_BASE              0xFF203040
+#define AUDIO_BASE            0xFF203040
 
 /* VGA colors */
 #define WHITE 0xFFFF
@@ -63,9 +63,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h> 
+#include <string.h>
 
 
 int* letter_states = {0, 0, 0, 0, 0};
+char wrong_guesses [1000] = "";
 volatile int pixel_buffer_start; // global variable
 
 // code for subroutines (not shown)
@@ -82,6 +84,14 @@ void clear_screen(){
     }
 }
 
+void clear_snowman(){
+    for (int i = 130; i < RESOLUTION_X; i++){
+        for (int j = 0; j < RESOLUTION_Y; j++){
+            plot_pixel(i, j, 0x0000);
+            
+        }
+    }
+}
 void play_sound(int frequency, int duration) {
     volatile int *audio_ptr = (int *)AUDIO_BASE;
     int sample_rate = 48000; // 48 kHz
@@ -90,11 +100,11 @@ void play_sound(int frequency, int duration) {
 
     for (int i = 0; i < num_samples; ++i) {
         if (i % (2 * half_period) < half_period) {
-            *(audio_ptr) = 0x00FFFFFF; // max positive value
-            *(audio_ptr + 2) = 0x00FFFFFF;
+            *(audio_ptr + 2) = 0x00FFFFFF; // max positive value
+            *(audio_ptr + 3) = 0x00FFFFFF;
         } else {
-            *(audio_ptr) = 0xFF000000; // max negative value
-            *(audio_ptr + 2) = 0xFF000000;
+            *(audio_ptr + 2) = 0xFF000000; // max negative value
+            *(audio_ptr + 3) = 0xFF000000;
         }
     }
 }
@@ -245,6 +255,8 @@ void draw_letter(char letter, int x, int y, short int color){
     if (letter >= 'A' && letter <= 'Z') {
         int letter_index = letter - 'A';
         draw_letter_helper(x, y, color, letter_matrices[letter_index]);
+    } else if (letter == '_'){
+        draw_letter_helper(x, y, color, letter_matrices[26]);
     }
 }
 
@@ -258,20 +270,7 @@ void draw_letter_helper(int x, int y, short int color, const uint32_t letter_mat
             }
         }
     }
-    /* for (int i = 0; i < 8; ++i) {
-        for (int j = 0; j < 8; ++j) {
-            if (letter_matrix[i] & (1 << (15 - j))) {
-                plot_pixel(x + j, y + (2 * i), color);
-                plot_pixel(x + j, y + (2 * i) + 1, color);
-            }
-        }
-         for (int j = 0; j < 16; ++j) {
-            if (letter_matrix[i] & (1 << (31 - j))) {
-                plot_pixel(x + j, y + (2 * i) + 16, color);
-                plot_pixel(x + j, y + (2 * i) + 17, color);
-            }
-        } 
-    } */
+   
 }
 
 
@@ -284,16 +283,25 @@ void draw_word(int word_len, char *word, int x, int y, int color){
 void draw_current_word(char * word, int color){
     for (int i = 0 ; i < 5; i++){
         if (letter_states[i] == 1){
-            draw_letter(word[i], i * 10, 0, color);
+            draw_letter(word[i], 20 + i * 10, 70, color);
         } else {
-            draw_letter('_', i*10, 0, color);
+            draw_letter('_', 20 + i*10, 70, color);
         }
     }
 }
+
+void draw_current_guesses(){
+    int length = strlen(wrong_guesses);
+    for (int i = 0; i < length; i++){
+    
+        draw_letter(wrong_guesses[i], 20 + i * 10, 100, RED);
+    }
+}
+
 void draw_current_snowman(int health) {
     // Draw snowman based on health
-    int mid_x = RESOLUTION_X/2;
-    if (health == 6) {
+    int mid_x = RESOLUTION_X/2 + 100;
+    if (health == 5) {
         // Draw full snowman
         clear_screen();
 
@@ -309,7 +317,7 @@ void draw_current_snowman(int health) {
 
 
     }
-    else if (health == 5) { 
+    else if (health == 4) { 
         clear_screen();
         draw_sphere(mid_x , 0+HEAD_RADIUS + 5, HEAD_RADIUS, WHITE);
         draw_sphere(mid_x , 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5, BODY_RADIUS, WHITE);
@@ -319,34 +327,110 @@ void draw_current_snowman(int health) {
         draw_line(mid_x - ARM_LENGTH_X, HEAD_RADIUS + 5 - ARM_LENGTH_Y, mid_x, HEAD_RADIUS + 5 - ARM_LENGTH_Y, ORANGE);
         
     }
-    else if (health == 4) {
-        clear_screen();     // melting body
-        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 10, HEAD_RADIUS, WHITE);
-        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + BODY_RADIUS + 5, BODY_RADIUS, WHITE);
-        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
-    }
     else if (health == 3) {
-        clear_screen();
-        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + BODY_RADIUS + 5, BODY_RADIUS, WHITE);
-        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
+        clear_screen();     // melting body
+        draw_sphere(mid_x, 0+HEAD_RADIUS + 5, HEAD_RADIUS, WHITE);
+        draw_sphere(mid_x, 0+HEAD_RADIUS + BODY_RADIUS + 5, BODY_RADIUS, WHITE);
+        draw_sphere(mid_x, 0+HEAD_RADIUS + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
     }
     else if (health == 2) {
-        // Draw snowman head and feet
         clear_screen();
-        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + BODY_RADIUS + 5, BODY_RADIUS, WHITE);
-        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
+        draw_sphere(mid_x, 0+HEAD_RADIUS + BODY_RADIUS + 5, BODY_RADIUS, WHITE);
+        draw_sphere(mid_x, 0+HEAD_RADIUS + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
     }
     else if (health == 1) {
         // Draw snowman head only
         clear_screen();
-        draw_sphere(RESOLUTION_X/2, 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
+        draw_sphere(mid_x, 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
     }
     else {
         // Draw red X
         clear_screen();
-        draw_line(RESOLUTION_X/2 - HEAD_RADIUS, 0+HEAD_RADIUS + 5 - HEAD_RADIUS, RESOLUTION_X/2 + HEAD_RADIUS, 0+HEAD_RADIUS + 5 + HEAD_RADIUS, RED);
-        draw_line(RESOLUTION_X/2 - HEAD_RADIUS, 0+HEAD_RADIUS + 5 + HEAD_RADIUS, RESOLUTION_X/2 + HEAD_RADIUS, 0+HEAD_RADIUS + 5 - HEAD_RADIUS, RED);
+        draw_line(mid_x - HEAD_RADIUS, 0+HEAD_RADIUS + 5 - HEAD_RADIUS, mid_x + HEAD_RADIUS, 0+HEAD_RADIUS + 5 + HEAD_RADIUS, RED);
+        draw_line(mid_x - HEAD_RADIUS, 0+HEAD_RADIUS + 5 + HEAD_RADIUS, mid_x + HEAD_RADIUS, 0+HEAD_RADIUS + 5 - HEAD_RADIUS, RED);
     }
+}
+
+void draw_transition_animation(int health){
+    volatile int* pixel_ctrl_ptr = (int *)0xFF203020;
+    int mid_x = RESOLUTION_X/2 + 100;
+    int dynamic_head_radius = HEAD_RADIUS, dynamic_body_radius = BODY_RADIUS, dynamic_feet_radius = FEET_RADIUS;
+    int dynamic_arm_height = HEAD_RADIUS + 5 + BODY_RADIUS + 5, dynamic_nose_height = HEAD_RADIUS + 5;
+    if (health == 4){
+        // make arms fall
+        int gravity = 1;
+        while (dynamic_arm_height < 220){
+            dynamic_arm_height+=gravity;
+            gravity++;
+            clear_snowman();
+
+            draw_sphere(mid_x , 0+HEAD_RADIUS + 5, HEAD_RADIUS, WHITE);     // head 
+            draw_sphere(mid_x , 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5, BODY_RADIUS, WHITE);       // middle
+            draw_sphere(mid_x , 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);     // bottom
+
+            draw_line(mid_x + BODY_RADIUS, dynamic_arm_height, mid_x + BODY_RADIUS + ARM_LENGTH_X, dynamic_arm_height + ARM_LENGTH_Y, GREEN); // right arm
+            draw_line(mid_x - BODY_RADIUS, dynamic_arm_height, mid_x - BODY_RADIUS - ARM_LENGTH_X, dynamic_arm_height + ARM_LENGTH_Y, GREEN); // left arm
+
+            draw_line(mid_x, HEAD_RADIUS + 5, mid_x - ARM_LENGTH_X, HEAD_RADIUS + 5 - ARM_LENGTH_Y, ORANGE);    // NOSE
+            draw_line(mid_x - ARM_LENGTH_X, HEAD_RADIUS + 5 - ARM_LENGTH_Y, mid_x, HEAD_RADIUS + 5 - ARM_LENGTH_Y, ORANGE);
+            wait_for_vsync();
+            pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+        }
+
+    }
+    else if (health == 3){
+        // make face fall off
+        
+        int gravity = 1;
+        while(dynamic_nose_height < 220){
+            dynamic_nose_height+=gravity;
+            gravity++;
+
+            clear_snowman();
+            draw_sphere(mid_x , 0+HEAD_RADIUS + 5, HEAD_RADIUS, WHITE);     // head 
+            draw_sphere(mid_x , 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5, BODY_RADIUS, WHITE);       // middle
+            draw_sphere(mid_x , 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);     // bottom
+
+            draw_line(mid_x, dynamic_nose_height, mid_x - ARM_LENGTH_X, dynamic_nose_height - ARM_LENGTH_Y, ORANGE);    // NOSE
+            draw_line(mid_x - ARM_LENGTH_X, dynamic_nose_height - ARM_LENGTH_Y, mid_x, dynamic_nose_height - ARM_LENGTH_Y, ORANGE);
+            wait_for_vsync();
+            pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+        }
+    }
+    else if (health == 2){
+        while(dynamic_head_radius > 0){
+            dynamic_head_radius--;
+            clear_snowman();
+            draw_sphere(mid_x, 0+HEAD_RADIUS + 5, dynamic_head_radius, WHITE);
+            draw_sphere(mid_x, 0+HEAD_RADIUS + BODY_RADIUS + 5, BODY_RADIUS, WHITE);
+            draw_sphere(mid_x, 0+HEAD_RADIUS + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
+
+            wait_for_vsync();
+            pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+
+        }
+    } else if (health == 1){
+        while(dynamic_body_radius > 0){
+            dynamic_body_radius--;
+            clear_snowman();
+            draw_sphere(mid_x, 0+HEAD_RADIUS + BODY_RADIUS + 5, dynamic_body_radius, WHITE);
+            draw_sphere(mid_x, 0+HEAD_RADIUS + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
+
+            wait_for_vsync();
+            pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+
+        }
+    } else if (health == 0){
+        while(dynamic_feet_radius > 0){
+            dynamic_feet_radius--;
+            clear_snowman();
+            draw_sphere(mid_x, 0+HEAD_RADIUS + BODY_RADIUS + 5 + FEET_RADIUS + 5, dynamic_feet_radius, WHITE);
+
+            wait_for_vsync();
+            pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+
+        }
+    } 
 }
 
 int convert_to_ascii(int num) {
@@ -473,7 +557,7 @@ int main(void)
 
     char* wordArray[] = {EASY1,EASY2,EASY3,EASY4,EASY5,MEDIUM1,MEDIUM2,MEDIUM3,MEDIUM4,MEDIUM5,HARD1,HARD2,HARD3,HARD4,HARD5};
 
-    int SnowmanHealth = 6;
+    int SnowmanHealth = 5;
     volatile int* PS2_ADDRESS = 0xFF200100;
     volatile int* LED_ADDRESS = LEDR_BASE;
     volatile int* KEY_ADDRESS = 0xFF20005C;
@@ -495,10 +579,12 @@ int main(void)
         int key_value_edge = (*(KEY_ADDRESS))&0xF;
         if (key_value_edge == 1) {
             game_state = 0;
-            SnowmanHealth = 6;
+            SnowmanHealth = 5;
             for (int i = 0; i < 5; i++){
                 letter_states[i] = 0;
             }
+            int len = strlen(wrong_guesses);
+            strcpy(wrong_guesses, "");
             //write back to the edgecapture register to reset it
             *(KEY_ADDRESS) = 0xF;
         }
@@ -526,7 +612,7 @@ int main(void)
             //Draw game screen, wait for key input to determine if snowman is hit or character is guessed
             draw_current_snowman(SnowmanHealth);
             draw_current_word(word, WHITE);
-            
+            draw_current_guesses();
             // Read from PS2
             PS2_data = *(PS2_ADDRESS);
             RVALID = (PS2_data & 0x8000);
@@ -548,10 +634,12 @@ int main(void)
 
                     if (!key_in_word) {
                         SnowmanHealth--;
+                        draw_transition_animation(SnowmanHealth);
+                        char tmp[2] = {key_val, '\0'};
+                        strcat(wrong_guesses, tmp);
                         if (SnowmanHealth == 0) {
                             draw_current_snowman(SnowmanHealth);
                             game_state = 2;
-                            play_sound(440, 2000);
                         }
                     }
                 }
@@ -576,7 +664,6 @@ int main(void)
             }
 
             if (win){
-                play_sound(880, 2000); // 880 Hz, 500 ms
                 game_state = 3;
             } 
 
@@ -584,7 +671,7 @@ int main(void)
             wait_for_vsync();
             pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
         }
-        else if (game_state == 2) {
+        else if (game_state == 2) {     // LOSS
             //Draw game over screen, prompt restart option
             wait_for_vsync();
             pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
@@ -603,9 +690,10 @@ int main(void)
                 letter_states[i] = !letter_states[i];
             }
             
-            // draw "YOU WON"
+            // draw "YOU LOST"
             draw_word(8, "You Lost", 10, 190, RED);
             draw_word(21, "Press KEYO to Restart", 10, 210, RED);
+            play_sound(440, 1000); // 880 Hz, 500 ms
 
             PS2_data = *(PS2_ADDRESS);
 
@@ -613,10 +701,12 @@ int main(void)
             wait_for_vsync();
             pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
             clear_screen();
-            draw_current_snowman(6);    // draw with max hp
+            draw_current_snowman(5);    // draw with max hp
             draw_current_word(word, GREEN);
             // draw "YOU WON"
-            draw_word(7, "You Won", 10, 200, GREEN);
+            draw_word(7, "You Won", 10, 190, GREEN);
+            draw_word(21, "Press KEYO to Restart", 10, 210, GREEN);
+            play_sound(880, 1000); // 880 Hz, 500 ms
 
             PS2_data = *(PS2_ADDRESS);
             
