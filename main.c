@@ -586,6 +586,7 @@ int main(void)
     {
         int key_value_edge = (*(KEY_ADDRESS))&0xF;
         if (key_value_edge == 1) {
+            clear_screen();
             game_state = 0;
             SnowmanHealth = 5;
             for (int i = 0; i < 5; i++){
@@ -595,6 +596,12 @@ int main(void)
             strcpy(wrong_guesses, "");
             //write back to the edgecapture register to reset it
             *(KEY_ADDRESS) = 0xF;
+            //clear both buffers
+            wait_for_vsync();
+            pixel_buffer_start = *(pixel_ctrl_ptr + 1);
+            clear_screen();
+            wait_for_vsync();
+            pixel_buffer_start = *(pixel_ctrl_ptr + 1);
         }
         *(KEY_ADDRESS) = 0xF;
         if (game_state == 0) {
