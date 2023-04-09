@@ -303,7 +303,7 @@ void draw_current_snowman(int health) {
     int mid_x = RESOLUTION_X/2 + 100;
     if (health == 5) {
         // Draw full snowman
-        clear_screen();
+        clear_snowman();
 
         draw_sphere(mid_x , 0+HEAD_RADIUS + 5, HEAD_RADIUS, WHITE);     // head 
         draw_sphere(mid_x , 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5, BODY_RADIUS, WHITE);       // middle
@@ -318,7 +318,7 @@ void draw_current_snowman(int health) {
 
     }
     else if (health == 4) { 
-        clear_screen();
+        clear_snowman();
         draw_sphere(mid_x , 0+HEAD_RADIUS + 5, HEAD_RADIUS, WHITE);
         draw_sphere(mid_x , 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5, BODY_RADIUS, WHITE);
         draw_sphere(mid_x , 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
@@ -328,30 +328,30 @@ void draw_current_snowman(int health) {
         
     }
     else if (health == 3) {
-        clear_screen();     // melting body
+        clear_snowman();     // melting body
         draw_sphere(mid_x, 0+HEAD_RADIUS + 5, HEAD_RADIUS, WHITE);
         draw_sphere(mid_x, 0+HEAD_RADIUS + BODY_RADIUS + 5, BODY_RADIUS, WHITE);
         draw_sphere(mid_x, 0+HEAD_RADIUS + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
     }
     else if (health == 2) {
-        clear_screen();
+        clear_snowman();
         draw_sphere(mid_x, 0+HEAD_RADIUS + BODY_RADIUS + 5, BODY_RADIUS, WHITE);
         draw_sphere(mid_x, 0+HEAD_RADIUS + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
     }
     else if (health == 1) {
         // Draw snowman head only
-        clear_screen();
+        clear_snowman();
         draw_sphere(mid_x, 0+HEAD_RADIUS + 5 + BODY_RADIUS + 5 + FEET_RADIUS + 5, FEET_RADIUS, WHITE);
     }
     else {
         // Draw red X
-        clear_screen();
+        clear_snowman();
         draw_line(mid_x - HEAD_RADIUS, 0+HEAD_RADIUS + 5 - HEAD_RADIUS, mid_x + HEAD_RADIUS, 0+HEAD_RADIUS + 5 + HEAD_RADIUS, RED);
         draw_line(mid_x - HEAD_RADIUS, 0+HEAD_RADIUS + 5 + HEAD_RADIUS, mid_x + HEAD_RADIUS, 0+HEAD_RADIUS + 5 - HEAD_RADIUS, RED);
     }
 }
 
-void draw_transition_animation(int health){
+void draw_transition_animation(int health, char* word){
     volatile int* pixel_ctrl_ptr = (int *)0xFF203020;
     int mid_x = RESOLUTION_X/2 + 100;
     int dynamic_head_radius = HEAD_RADIUS, dynamic_body_radius = BODY_RADIUS, dynamic_feet_radius = FEET_RADIUS;
@@ -376,7 +376,6 @@ void draw_transition_animation(int health){
             wait_for_vsync();
             pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
         }
-
     }
     else if (health == 3){
         // make face fall off
@@ -395,6 +394,7 @@ void draw_transition_animation(int health){
             draw_line(mid_x - ARM_LENGTH_X, dynamic_nose_height - ARM_LENGTH_Y, mid_x, dynamic_nose_height - ARM_LENGTH_Y, ORANGE);
             wait_for_vsync();
             pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+
         }
     }
     else if (health == 2){
@@ -407,7 +407,6 @@ void draw_transition_animation(int health){
 
             wait_for_vsync();
             pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
-
         }
     } else if (health == 1){
         while(dynamic_body_radius > 0){
@@ -418,7 +417,6 @@ void draw_transition_animation(int health){
 
             wait_for_vsync();
             pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
-
         }
     } else if (health == 0){
         while(dynamic_feet_radius > 0){
@@ -428,9 +426,19 @@ void draw_transition_animation(int health){
 
             wait_for_vsync();
             pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
-
         }
-    } 
+    }
+    // Clear previous animation frames 
+    draw_current_snowman(health);
+    draw_current_word(word, WHITE);
+    draw_current_guesses();
+    wait_for_vsync();
+    pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+    draw_current_snowman(health);
+    draw_current_word(word, WHITE);
+    draw_current_guesses();
+    wait_for_vsync();
+    pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
 }
 
 int convert_to_ascii(int num) {
@@ -591,21 +599,27 @@ int main(void)
         *(KEY_ADDRESS) = 0xF;
         if (game_state == 0) {
             //Draw starting screen, wait for button press to determine difficulty
-            clear_screen();
-            PS2_data = *(PS2_ADDRESS);
-            if (key_value_edge > 1) {
-                difficulty = key_value_edge; // Switch to edgecaptures if needed
-                game_state = 1;
-                //Generate random word based on difficulty
-                //word = "hello";
-                word = generate_word(difficulty, wordArray);
-            }
-            
             draw_word(26, "Welcome to Melting Snowman", 10, 180, WHITE);
             draw_word(29, "Select difficulty by pressing", 10, 200, WHITE);
             draw_word(16, "key one to three", 10, 220, WHITE);
             wait_for_vsync();
             pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+            PS2_data = *(PS2_ADDRESS);
+            if (key_value_edge > 1) {
+                difficulty = key_value_edge; // Switch to edgecaptures if needed
+                game_state = 1;
+                clear_screen();
+                wait_for_vsync();
+                pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+                clear_screen();
+                wait_for_vsync();
+                pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+                //Generate random word based on difficulty
+                //word = "hello";
+                word = generate_word(difficulty, wordArray);
+            }
+            
+            
 
         }
         else if (game_state == 1) {
@@ -634,11 +648,10 @@ int main(void)
 
                     if (!key_in_word) {
                         SnowmanHealth--;
-                        draw_transition_animation(SnowmanHealth);
+                        draw_transition_animation(SnowmanHealth,word);
                         char tmp[2] = {key_val, '\0'};
                         strcat(wrong_guesses, tmp);
                         if (SnowmanHealth == 0) {
-                            draw_current_snowman(SnowmanHealth);
                             game_state = 2;
                         }
                     }
