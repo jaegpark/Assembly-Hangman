@@ -688,7 +688,7 @@ int main(void)
             }
             int win = 1;
             // check for win condition
-            for (int i = 0; i < 5; i++){
+            for (int i = 0; i < strlen(word); i++){
                 if (letter_states[i] == 0){
                     win = 0;
                 }
