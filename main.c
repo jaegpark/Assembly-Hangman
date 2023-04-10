@@ -281,7 +281,7 @@ void draw_word(int word_len, char *word, int x, int y, int color){
     }
 }
 void draw_current_word(char * word, int color){
-    for (int i = 0 ; i < 5; i++){
+    for (int i = 0 ; i < strlen(word); i++){
         if (letter_states[i] == 1){
             draw_letter(word[i], 20 + i * 10, 70, color);
         } else {
@@ -646,7 +646,7 @@ int main(void)
                     //check if key_val is inside the word
                     //if not, decrement health
                     int key_in_word = 0;
-                    for (int i = 0; i < 5; i++) {
+                    for (int i = 0; i < strlen(word); i++) {
                         if (key_val == word[i]) {
                             key_in_word = 1;
                             letter_states[i] = 1;
@@ -706,7 +706,7 @@ int main(void)
             
 
             draw_current_word(word, RED);
-            for (int i = 0 ; i < 5; i++){
+            for (int i = 0 ; i < strlen(word); i++){
                 letter_states[i] = !letter_states[i];
             }
             
