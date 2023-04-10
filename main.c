@@ -51,11 +51,16 @@
 #define MEDIUM3 "tiger"
 #define MEDIUM4 "towel"
 #define MEDIUM5 "water"
-#define HARD1 "ducat"
+#define MEDIUM6 "jojoba"
+#define MEDIUM7 "hijack"
+#define MEDIUM8 "assembly"
+#define HARD1 "muzzle"
 #define HARD2 "ouija"
 #define HARD3 "enoki"
 #define HARD4 "azure"
 #define HARD5 "soare"
+#define HARD6 "abacus"
+#define HARD7 "oxidize"
 
 #define FALSE 0
 #define TRUE 1
@@ -66,7 +71,7 @@
 #include <string.h>
 
 
-int* letter_states = {0, 0, 0, 0, 0};
+int* letter_states;
 char wrong_guesses [1000] = "";
 volatile int pixel_buffer_start; // global variable
 
@@ -525,18 +530,21 @@ int convert_to_ascii(int num) {
 
 char* generate_word(int difficulty, char* word_array[]) {
     // Generate random index between 0 and 4
-    int i = rand() % 5;
+    
     if (difficulty == 2) {
         // Easy
+        int i = rand() % 5;
         return word_array[i];
     }
     else if (difficulty == 4) {
         // Medium
+        int i = rand() % 8;
         return word_array[i+5];
     }
     else {
         // Hard
-        return word_array[i+10];
+        int i = rand() % 7;
+        return word_array[i+13];
     }
 }
 
@@ -563,7 +571,8 @@ int main(void)
     //6 health --> filled circle for head, filled circle for body, filled circle for feet
     //int health_6[];
 
-    char* wordArray[] = {EASY1,EASY2,EASY3,EASY4,EASY5,MEDIUM1,MEDIUM2,MEDIUM3,MEDIUM4,MEDIUM5,HARD1,HARD2,HARD3,HARD4,HARD5};
+    char* wordArray[] = {EASY1,EASY2,EASY3,EASY4,EASY5,MEDIUM1,MEDIUM2,MEDIUM3,MEDIUM4,MEDIUM5,
+                        MEDIUM6, MEDIUM7, MEDIUM8, HARD1,HARD2,HARD3,HARD4,HARD5,HARD6,HARD7};
 
     int SnowmanHealth = 5;
     volatile int* PS2_ADDRESS = 0xFF200100;
@@ -578,9 +587,9 @@ int main(void)
 
     //temporary word
     char* word;
-    for (int i =0 ; i < 5; i++){
+    /* for (int i =0 ; i < 5; i++){
         letter_states[i] = 0;
-    }
+    } */
 
     while (1)
     {
@@ -589,9 +598,7 @@ int main(void)
             clear_screen();
             game_state = 0;
             SnowmanHealth = 5;
-            for (int i = 0; i < 5; i++){
-                letter_states[i] = 0;
-            }
+            free(letter_states);
             int len = strlen(wrong_guesses);
             strcpy(wrong_guesses, "");
             //write back to the edgecapture register to reset it
@@ -624,6 +631,10 @@ int main(void)
                 //Generate random word based on difficulty
                 //word = "hello";
                 word = generate_word(difficulty, wordArray);
+
+                // initialize letter_states
+                letter_states = calloc(strlen(word), sizeof(int));
+
             }
             
             
@@ -700,7 +711,7 @@ int main(void)
 
             // reset states so that the things appear
             draw_current_word(word, WHITE);
-            for (int i = 0 ; i < 5; i++){
+            for (int i = 0 ; i < strlen(word); i++){
                 letter_states[i] = !letter_states[i];
             }
             
